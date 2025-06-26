@@ -34,8 +34,7 @@ Illustrates:
 Run the shell script to start Embabel under Spring Shell:
 
 ```bash
-cd scripts
-./shell.sh
+mvn spring-boot:run
 ```
 
 There is a single example agent, `WriteAndReviewAgent`.
@@ -47,5 +46,96 @@ When the Embabel shell comes up, use the story agent like this:
 ```
 x "Tell me a story about...[your topic]"
 ```
+
+## Complete Workflow Sequence
+
+This diagram shows the complete end-to-end workflow from system startup to story generation using GOAP dynamic planning:
+
+```mermaid
+sequenceDiagram
+    participant User as User
+    participant Maven as Maven
+    participant Spring as Spring Boot
+    participant Embabel as Embabel Platform
+    participant Ollama as Ollama Service
+    participant GOAP as GOAP Planner
+    participant Agent as WriteAndReviewAgent
+    participant Shell as Spring Shell
+
+    %% Build and Startup Phase
+    User->>Maven: mvn spring-boot:run
+    Maven->>Maven: Compile 2 source files + 1 test file
+    Maven->>Spring: Start Spring Boot application
+    
+    Spring->>Spring: Activate profiles: "ollama", "starwars", "shell"
+    Spring->>Embabel: Initialize AgentPlatformAutoConfiguration
+    
+    %% Model Discovery Phase
+    Embabel->>Ollama: Connect to http://localhost:11434
+    Ollama-->>Embabel: Return 16 available models
+    Note over Embabel,Ollama: Models: qwen3 series, deepseek-r1, mistral-nemo,<br/>llama3 series, gemma2, codellama, etc.
+    
+    Embabel->>Embabel: Set default LLM: qwen2.5:latest
+    Embabel->>Embabel: Set default embedding: nomic-embed-text:latest
+    
+    %% Tool and Agent Discovery Phase
+    Embabel->>Embabel: Initialize MCP clients (0 found)
+    Embabel->>Embabel: Register 6 tool groups (math, rag, etc.)
+    
+    Embabel->>Agent: Scan and deploy WriteAndReviewAgent
+    Agent->>Agent: Analyze action bindings
+    Note over Agent: craftStory: UserInput -> Story<br/>reviewStory: UserInput,Story -> ReviewedStory
+    
+    Embabel->>Shell: Initialize Spring Shell with Star Wars theme
+    Shell-->>User: Ready to receive commands
+    
+    %% User Interaction and GOAP Planning Phase
+    User->>Shell: x "给我讲个治愈的故事"
+    Shell->>Embabel: Choose appropriate agent
+    Embabel->>Embabel: Agent selection (confidence: 0.95)
+    Embabel->>GOAP: Create process "hungry_chebyshev"
+    
+    %% Dynamic Planning Phase 1
+    GOAP->>GOAP: Initial world state analysis
+    Note over GOAP: {UserInput=TRUE, Story=FALSE,<br/>ReviewedStory=FALSE, hasRun_*=FALSE}
+    GOAP->>GOAP: Formulate plan: craftStory -> reviewStory
+    
+    %% Action Execution Phase 1
+    GOAP->>Agent: Execute craftStory action
+    Agent->>Ollama: Generate story (temperature=0.9, creative persona)
+    Ollama-->>Agent: Return generated story
+    Agent-->>GOAP: Story object created
+    
+    %% Dynamic Replanning Phase
+    GOAP->>GOAP: Update world state
+    Note over GOAP: {UserInput=TRUE, Story=TRUE,<br/>hasRun_craftStory=TRUE, ReviewedStory=FALSE}
+    GOAP->>GOAP: Replan: reviewStory only
+    
+    %% Action Execution Phase 2
+    GOAP->>Agent: Execute reviewStory action
+    Agent->>Ollama: Review story (temperature=0.5, reviewer persona)
+    Ollama-->>Agent: Return review text
+    Agent-->>GOAP: ReviewedStory object created
+    
+    %% Goal Achievement
+    GOAP->>GOAP: Final world state verification
+    Note over GOAP: {UserInput=TRUE, Story=TRUE,<br/>ReviewedStory=TRUE, hasRun_*=TRUE}
+    GOAP->>GOAP: Goal achieved in 3.29 seconds
+    
+    GOAP-->>Shell: Return complete ReviewedStory
+    Shell-->>User: Display story, review, and reviewer info
+
+    %% Summary
+    Note over User,Shell: Total execution: 3.29s<br/>LLM calls: 2 (qwen2.5:latest)<br/>Tokens: 453 prompt + 143 completion<br/>Cost: $0.0000
+```
+
+### Key Features
+
+- **GOAP Dynamic Planning**: Plans and replans actions based on current world state
+- **Multi-Persona LLM**: Uses different personas and temperatures for creative vs. analytical tasks  
+- **Automatic Agent Selection**: Chooses appropriate agent based on user input
+- **State Management**: Tracks execution state and available objects throughout workflow
+- **Tool Integration**: Extensible tool system with 6 registered tool groups
+
 
 
