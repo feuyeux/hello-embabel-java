@@ -1,11 +1,42 @@
 
+# Embabel specific
 embabel-agent-api/src/main/resources/mcp/**
 
+# Maven build artifacts
 /target/**
 */target/**
 */*/target/**
 */*/*/target/**
 
+# IDE files
 .idea/**
+*.iml
+*.ipr
+*.iws
+.vscode/
 
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Logs
 **/*.log
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Package files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
