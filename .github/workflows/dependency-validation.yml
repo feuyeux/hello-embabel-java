@@ -1,0 +1,83 @@
+name: Dependency Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'pom.xml'
+      - 'src/**'
+  push:
+    branches: [main, master, develop]
+
+jobs:
+  validate-dependencies:
+    name: Validate Java Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-java-${{ hashFiles('pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-java
+      
+      - name: Validate dependencies
+        run: |
+          echo "🔍 检查依赖冲突..."
+          mvn dependency:analyze-report
+          
+          echo "🔍 检查过时依赖..."
+          mvn versions:display-dependency-updates
+          
+          echo "🔍 检查安全漏洞..."
+          mvn org.owasp:dependency-check-maven:check || true
+          
+          echo "🧪 运行测试..."
+          mvn clean test
+          
+          echo "📦 验证构建..."
+          mvn clean package -DskipTests
+      
+      - name: Upload dependency reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: java-dependency-reports
+          path: |
+            target/dependency-analysis.html
+            target/dependency-check-report.html
+            target/dependency-updates-report.xml
+          retention-days: 7
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'

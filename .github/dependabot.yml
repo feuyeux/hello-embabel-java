@@ -1,0 +1,64 @@
+# Java子工程 Dependabot 配置
+version: 2
+updates:
+  # Java Maven 依赖更新
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "java"
+      - "automerge"
+    # 允许的更新类型
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    # 忽略主版本更新，避免破坏性变更
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # 分组相关依赖更新
+    groups:
+      spring:
+        patterns:
+          - "org.springframework*"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "org.junit*"
+          - "org.mockito*"
+          - "org.assertj*"
+        update-types:
+          - "minor"
+          - "patch"
+      embabel:
+        patterns:
+          - "com.embabel*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions 工作流更新
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps(actions)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automerge"

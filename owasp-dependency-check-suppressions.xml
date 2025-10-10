@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- 
+    常见抑制规则示例 - 根据实际需要调整
+    -->
+    
+    <!-- 抑制测试依赖的漏洞（测试环境不影响生产安全） -->
+    <suppress>
+        <notes><![CDATA[
+        JUnit测试框架，仅在测试环境使用，不会部署到生产环境
+        ]]></notes>
+    </suppress>
+    
+    <suppress>
+        <notes><![CDATA[
+        抑制特定依赖的所有漏洞（谨慎使用）
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.example/example\-lib@.*$</packageUrl>
+    </suppress>
+    -->
+</suppressions>
