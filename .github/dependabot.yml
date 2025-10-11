@@ -24,6 +24,12 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    # 私有仓库配置
+    registries:
+      - embabel-maven
+    # 自动合并配置
+    pull-request-branch-name:
+      separator: "/"
     # 分组相关依赖更新
     groups:
       spring:
@@ -62,3 +68,11 @@ updates:
       - "dependencies"
       - "github-actions"
       - "automerge"
+
+# 私有仓库注册配置
+registries:
+  embabel-maven:
+    type: maven-repository
+    url: https://repo.embabel.com/artifactory/libs-snapshot
+    username: ${{secrets.EMBABEL_REPO_USERNAME}}
+    password: ${{secrets.EMBABEL_REPO_PASSWORD}}
