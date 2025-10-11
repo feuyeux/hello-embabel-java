@@ -122,7 +122,7 @@ jobs:
       
       - name: Create Pull Request
         if: env.no_changes == 'false'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "deps: update embabel-agent to ${{ env.new_version }}"
