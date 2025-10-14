@@ -40,6 +40,11 @@
             <version>${embabel-agent.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
         <!-- Unit and Integration Testing -->
         <dependency>
             <groupId>com.embabel.agent</groupId>

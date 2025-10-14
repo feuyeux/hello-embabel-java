@@ -1,0 +1,40 @@
+spring:
+  profiles:
+    active: ollama,starwars,shell
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: qwen2.5:latest
+      embedding:
+        options:
+          model: nomic-embed-text:latest
+      init:
+        pull-model-strategy: when_missing
+      models:
+        - name: qwen2.5:latest
+        - name: nomic-embed-text:latest
+
+logging:
+  level:
+    com.embabel: DEBUG
+    org.springframework.ai: DEBUG
+    root: INFO
+
+embabel:
+  models:
+    default-llm: qwen2.5:latest
+    default-embedding-model: nomic-embed-text:latest
+    embedding-services:
+      best: nomic-embed-text:latest
+      cheapest: nomic-embed-text:latest
+    llms:
+      best: qwen2.5:latest
+      cheapest: qwen2.5:latest
+  agent-platform:
+    ranking:
+      llm: qwen2.5:latest
+
+storyWordCount: 100
+reviewWordCount: 100
