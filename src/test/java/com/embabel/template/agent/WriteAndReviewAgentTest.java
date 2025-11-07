@@ -22,8 +22,9 @@ class WriteAndReviewAgentTest {
         var agent = new WriteAndReviewAgent(200, 400);
         WriteAndReviewAgent.Story craftStory = agent.craftStory(new UserInput("Tell me a story about a brave knight", Instant.now()), context);
         log.info("Crafted Story: {}", craftStory.text());
-        String prompt = promptRunner.getLlmInvocations().getFirst().getPrompt();
-        assertTrue(prompt.contains("knight"), "Expected prompt to contain 'knight'");
+        var messages = promptRunner.getLlmInvocations().getFirst().getMessages();
+        String messagesText = messages.toString();
+        assertTrue(messagesText.contains("knight"), "Expected prompt to contain 'knight'");
     }
 
     @Test
@@ -36,7 +37,9 @@ class WriteAndReviewAgentTest {
         WriteAndReviewAgent.ReviewedStory reviewedStory = agent.reviewStory(userInput, story, context);
         log.info("Reviewed Story: {}", reviewedStory.review());
         var llmInvocation = context.getLlmInvocations().getFirst();
-        assertTrue(llmInvocation.getPrompt().contains("knight"), "Expected prompt to contain 'knight'");
-        assertTrue(llmInvocation.getPrompt().contains("review"), "Expected prompt to contain 'review'");
+        var messages = llmInvocation.getMessages();
+        String messagesText = messages.toString();
+        assertTrue(messagesText.contains("knight"), "Expected prompt to contain 'knight'");
+        assertTrue(messagesText.contains("review"), "Expected prompt to contain 'review'");
     }
 }
