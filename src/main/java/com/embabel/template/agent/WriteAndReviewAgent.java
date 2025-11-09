@@ -18,14 +18,13 @@ package com.embabel.template.agent;
 import com.embabel.agent.api.annotation.AchievesGoal;
 import com.embabel.agent.api.annotation.Action;
 import com.embabel.agent.api.annotation.Agent;
+import com.embabel.agent.api.annotation.Export;
 import com.embabel.agent.api.common.OperationContext;
-import com.embabel.agent.api.common.PromptRunner;
 import com.embabel.agent.domain.io.UserInput;
 import com.embabel.agent.domain.library.HasContent;
 import com.embabel.agent.prompt.persona.Persona;
-import com.embabel.common.ai.model.AutoModelSelectionCriteria;
+import com.embabel.agent.prompt.persona.RoleGoalBackstory;
 import com.embabel.common.ai.model.LlmOptions;
-import com.embabel.common.ai.prompt.PromptContributionLocation;
 import com.embabel.common.core.types.Timestamped;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -35,65 +34,61 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-
 abstract class Personas {
-    static final Persona WRITER = Persona.create(
-            "Roald Dahl",
-            "A creative storyteller who loves to weave imaginative tales that are a bit unconventional",
-            "Quirky",
-            "Create memorable stories that captivate the reader's imagination.",
-            "",
-            PromptContributionLocation.BEGINNING
-    );
-    static final Persona REVIEWER = Persona.create(
+    static final RoleGoalBackstory WRITER = RoleGoalBackstory
+            .withRole("Creative Storyteller")
+            .andGoal("Write engaging and imaginative stories")
+            .andBackstory("Has a PhD in French literature; used to work in a circus");
+
+    static final Persona REVIEWER = new Persona(
             "Media Book Review",
             "New York Times Book Reviewer",
             "Professional and insightful",
-            "Help guide readers toward good stories",
-            "",
-            PromptContributionLocation.BEGINNING
+            "Help guide readers toward good stories"
     );
 }
 
-record Story(String text) {}
-
-record ReviewedStory(
-        Story story,
-        String review,
-        Persona reviewer
-) implements HasContent, Timestamped {
-
-    @Override
-    @NonNull
-    public Instant getTimestamp() {
-        return Instant.now();
-    }
-
-    @Override
-    @NonNull
-    public String getContent() {
-        return String.format("""
-            # Story
-            %s
-
-            # Review
-            %s
-
-            # Reviewer
-            %s, %s
-            """,
-                story.text(),
-                review,
-                reviewer.getName(),
-                getTimestamp().atZone(ZoneId.systemDefault())
-                        .format(DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy"))
-        ).trim();
-    }
-}
 
 @Agent(description = "Generate a story based on user input and review it")
 @Profile("!test")
-class WriteAndReviewAgent {
+public class WriteAndReviewAgent {
+
+    public record Story(String text) {
+    }
+
+    public record ReviewedStory(
+            Story story,
+            String review,
+            Persona reviewer
+    ) implements HasContent, Timestamped {
+
+        @Override
+        @NonNull
+        public Instant getTimestamp() {
+            return Instant.now();
+        }
+
+        @Override
+        @NonNull
+        public String getContent() {
+            return String.format("""
+                            # Story
+                            %s
+                            
+                            # Review
+                            %s
+                            
+                            # Reviewer
+                            %s, %s
+                            """,
+                    story.text(),
+                    review,
+                    reviewer.getName(),
+                    getTimestamp().atZone(ZoneId.systemDefault())
+                            .format(DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy"))
+            ).trim();
+        }
+    }
 
     private final int storyWordCount;
     private final int reviewWordCount;
@@ -106,44 +101,27 @@ class WriteAndReviewAgent {
         this.reviewWordCount = reviewWordCount;
     }
 
-    @Action
-    Story craftStory(UserInput userInput) {
-        return PromptRunner.usingLlm(
-                 LlmOptions.fromCriteria(AutoModelSelectionCriteria.INSTANCE)
-                        .withTemperature(0.9) // Higher temperature for more creative output
-        ).withPromptContributor(Personas.WRITER)
-                .createObject(String.format("""
-                Craft a short story in %d words or less.
-                The story should be engaging and imaginative.
-                Use the user's input as inspiration if possible.
-                If the user has provided a name, include it in the story.
-
-                # User input
-                %s
-                """,
-                        storyWordCount,
-                        userInput.getContent()
-                ).trim(), Story.class);
-    }
-
-    @AchievesGoal(description="The story has been crafted and reviewed by a book reviewer")
+    @AchievesGoal(
+            description = "The story has been crafted and reviewed by a book reviewer",
+            export = @Export(remote = true, name = "writeAndReviewStory"))
     @Action
     ReviewedStory reviewStory(UserInput userInput, Story story, OperationContext context) {
-        String review = context.promptRunner()
-                .withLlm(LlmOptions.fromCriteria(AutoModelSelectionCriteria.INSTANCE))
+        var review = context
+                .ai()
+                .withAutoLlm()
                 .withPromptContributor(Personas.REVIEWER)
                 .generateText(String.format("""
-                You will be given a short story to review.
-                Review it in %d words or less.
-                Consider whether or not the story is engaging, imaginative, and well-written.
-                Also consider whether the story is appropriate given the original user input.
-
-                # Story
-                %s
-
-                # User input that inspired the story
-                %s
-                """,
+                                You will be given a short story to review.
+                                Review it in %d words or less.
+                                Consider whether or not the story is engaging, imaginative, and well-written.
+                                Also consider whether the story is appropriate given the original user input.
+                                
+                                # Story
+                                %s
+                                
+                                # User input that inspired the story
+                                %s
+                                """,
                         reviewWordCount,
                         story.text(),
                         userInput.getContent()
@@ -154,5 +132,28 @@ class WriteAndReviewAgent {
                 review,
                 Personas.REVIEWER
         );
+    }
+
+    @Action
+    Story craftStory(UserInput userInput, OperationContext context) {
+        return context.ai()
+                // Higher temperature for more creative output
+                .withLlm(LlmOptions
+                        .withAutoLlm() // You can also choose a specific model or role here
+                        .withTemperature(.7)
+                )
+                .withPromptContributor(Personas.WRITER)
+                .createObject(String.format("""
+                                Craft a short story in %d words or less.
+                                The story should be engaging and imaginative.
+                                Use the user's input as inspiration if possible.
+                                If the user has provided a name, include it in the story.
+                                
+                                # User input
+                                %s
+                                """,
+                        storyWordCount,
+                        userInput.getContent()
+                ).trim(), Story.class);
     }
 }
