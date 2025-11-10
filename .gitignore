@@ -25,6 +25,8 @@ ehthumbs.db
 # Logs
 **/*.log
 *.log
+logs/
+*/logs/
 
 # Temporary files
 *.tmp

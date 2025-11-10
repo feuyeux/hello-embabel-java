@@ -22,11 +22,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @EnableAgents
-<<<<<<< HEAD:src/main/java/com/embabel/template/ProjectNameApplication.java
-class ProjectNameApplication {
-=======
 class HelloJavaApplication {
->>>>>>> 6ab0a26a4ee1481ddf5e792011de4395760684be:src/main/java/com/embabel/template/HelloJavaApplication.java
     public static void main(String[] args) {
         SpringApplication.run(HelloJavaApplication.class, args);
     }
